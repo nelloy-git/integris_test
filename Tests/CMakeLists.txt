@@ -4,10 +4,12 @@ project(Integris_test)
 cmake_policy(SET CMP0037 NEW)
 
 set(TESTS
-    ./test_TaskEmpty.h)
+    ./test_Task.h)
 
 find_package(CxxTest)
 find_package(PythonInterp)
+
+include_directories(../)
 
 MACRO(ADD_CXXTEST NAME)
     IF(PYTHONINTERP_FOUND)
@@ -28,6 +30,7 @@ MACRO(ADD_CXXTEST NAME)
 
     get_filename_component(TEST_NAME ${NAME} NAME_WE [CACHE])
     add_executable(${TEST_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${OUTDIR}/${NAME}.cpp ${ARGN})
+    target_link_libraries(${TEST_NAME} -lpthread)
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 ENDMACRO(ADD_CXXTEST)
