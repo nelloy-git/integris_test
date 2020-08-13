@@ -47,6 +47,15 @@
         "chrono": "cpp",
         "ratio": "cpp",
         "hash_map": "cpp",
-        "hash_set": "cpp"
+        "hash_set": "cpp",
+        "condition_variable": "cpp",
+        "cstdarg": "cpp",
+        "deque": "cpp",
+        "map": "cpp",
+        "optional": "cpp",
+        "set": "cpp",
+        "fstream": "cpp",
+        "mutex": "cpp",
+        "thread": "cpp"
     }
 }

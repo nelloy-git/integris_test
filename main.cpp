@@ -3,9 +3,24 @@
 #include <unistd.h>
 
 int main(int argc, char** argv){
-    auto lam = [](int a, int b){std::cout << "a=" << a << " b=" << b;};
-    Task task(false, false, lam, 3, 5);
+    auto lam = [](TaskState *state, int a, int b){
+        while(state->alive){
+            std::unique_lock ulock(state->lock);
+            state->conVar.wait(ulock, [=](){return (bool)state->goOn;});
+
+            sleep(1);
+            a += b;
+            std::cout << a << '\n';
+        }
+        state->killed = true;
+        std::cout << "Killed\n";
+    };
+
+
+
+    Task task(lam, 3, 5);
     task.start();
-    sleep(1);
+    sleep(10);
+    task.pause();
     //sleep(1);
 }
