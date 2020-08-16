@@ -72,12 +72,12 @@ public:
 
 protected:
     TaskSlave _slave;
+    TaskData _data;
 
     virtual void finish();
     virtual void error();
 
 private:
-    TaskData _data;
 
 };
 

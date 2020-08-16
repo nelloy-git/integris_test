@@ -61,6 +61,7 @@ TaskMaster::~TaskMaster(){
 
 void TaskMaster::start(){
     _data.status = TaskStatus::ACTIVE;
+    _data.alive = true;
 }
 
 void TaskMaster::finish(){
@@ -68,10 +69,10 @@ void TaskMaster::finish(){
 }
 
 void TaskMaster::pause(bool flag){
-    if (!flag && !_data.paused){
-        _data.status = TaskStatus::PAUSING;
+    if (!_data.status != TaskStatus::ACTIVE){
+        _data.status = flag ? TaskStatus::PAUSING : TaskStatus::ACTIVE;
     }
-    
+
     {
         std::lock_guard glock(_data.lock);
         _data.goOn = !flag;

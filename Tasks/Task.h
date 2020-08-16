@@ -31,6 +31,7 @@ public:
     };
 
     _resT getResult(){
+        _data.status = _data.status == TaskStatus::KILLING ? TaskStatus::FINISHED : TaskStatus::KILLED;
         // TODO exeptions
         auto res = _future.get();
         return res;

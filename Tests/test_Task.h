@@ -1,4 +1,6 @@
 #include <cxxtest/TestSuite.h>
+
+#include <ctime> 
 #include <iostream>
 #include <unistd.h>
 
@@ -33,9 +35,12 @@ class MyTestSuite1 : public CxxTest::TestSuite {
 
 public:
     void testEmptyTask(void) {
-        Task task([](TaskSlave& state){
+        std::srand((unsigned)time(0));
+        auto res = rand();
+
+        Task task([res](TaskSlave& state){
                 usleep(1000);
-                return 0;
+                return res;
             });
 
         TS_ASSERT(task.getStatus() == TaskStatus::INACTIVE);
@@ -43,6 +48,35 @@ public:
         TS_ASSERT(task.getStatus() == TaskStatus::ACTIVE);
         usleep(2000);
         TS_ASSERT(task.getStatus() == TaskStatus::FINISHED);
-        TS_ASSERT(task.getResult() == 0)
+        TS_ASSERT(task.getResult() == res);
     };
+
+    void testControll(void){
+        Task task([](TaskSlave &state){
+            std::srand((unsigned)time(0));
+                std::cout << "Loop\n";
+
+            while (state.isAlive()){
+                state.tryPause();
+                std::cout << "Loop\n";
+                usleep(1000);
+            }
+
+            state.applyKill();
+            return rand();    
+        });
+
+        TS_ASSERT(task.getStatus() == TaskStatus::INACTIVE);
+        task.start();
+        TS_ASSERT(task.getStatus() == TaskStatus::ACTIVE);
+        task.pause(true);
+        TS_ASSERT(task.getStatus() == TaskStatus::PAUSING);
+        usleep(2000);
+        TS_ASSERT(task.getStatus() == TaskStatus::PAUSED);
+        task.kill();
+        TS_ASSERT(task.getStatus() == TaskStatus::KILLING);
+        usleep(2000);
+        TS_ASSERT(task.getStatus() == TaskStatus::KILLED);
+        TS_ASSERT(task.getResult() == 0)
+    }
 };
