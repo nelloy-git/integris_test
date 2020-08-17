@@ -5,27 +5,22 @@
 #include <condition_variable>
 
 enum TaskStatus {
-    INACTIVE,
     ACTIVE,
-    PAUSING,
-    PAUSED,
-    KILLING,
-    KILLED,
-    FINISHED,
-    ERROR
+    DONE,
+    ERROR,
+    INACTIVE,
+    KILL,
+    PAUSE,
 };
+
+const char* TaskStatus2Str(TaskStatus status);
 
 struct TaskData{
     std::atomic<TaskStatus> status = TaskStatus::INACTIVE;
+    std::atomic<int> progress = -1;
 
     std::mutex lock;
     std::condition_variable conVar;
-    std::atomic<bool> goOn = true;
-    std::atomic<bool> paused = false;
-    std::atomic<bool> alive = true;
-    std::atomic<bool> killed = false;
-
-    std::atomic<int> progress = -1;
 };
 
 //-------
@@ -37,8 +32,8 @@ class TaskSlave {
 public:
     // Pause thread if Task is paused.
     void tryPause();
-    // Is task alive.
-    bool isAlive();
+    // Is task killed.
+    bool isKilled();
     // Accept thread kill.
     void applyKill();
     // 0 <= val <= 100
@@ -64,18 +59,13 @@ public:
     TaskMaster();
     virtual ~TaskMaster();
 
-    virtual void start();
-    virtual void pause(bool flag);
-    virtual void kill();
-    virtual int getProgress();
-    virtual TaskStatus getStatus();
+    TaskSlave getSlave();
+    void setStatus(TaskStatus status);
+    TaskStatus getStatus();
+    int getProgress();
 
 protected:
-    TaskSlave _slave;
     TaskData _data;
-
-    virtual void finish();
-    virtual void error();
 
 private:
 

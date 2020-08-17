@@ -1,6 +1,25 @@
 #include "Tasks/TaskData.h"
 
 #include <iostream>
+#include <unordered_map>
+
+static const std::unordered_map<TaskStatus, const char*> Status2StrMap{
+    {TaskStatus::ACTIVE, "ACTIVE"},
+    {TaskStatus::DONE, "DONE"},
+    {TaskStatus::ERROR, "ERROR"},
+    {TaskStatus::INACTIVE, "INACTIVE"},
+    {TaskStatus::KILL, "KILL"},
+    {TaskStatus::PAUSE, "PAUSE"},
+};
+
+const char* TaskStatus2Str(TaskStatus status){
+    try{
+        return Status2StrMap.at(status);
+    }
+    catch (const std::out_of_range &e){
+        return "Unknown";
+    }
+}
 
 //-------
 // Slave
@@ -14,28 +33,26 @@ TaskSlave::~TaskSlave(){
 }
 
 void TaskSlave::tryPause(){
-    if (!_data->goOn){
-        _data->status = TaskStatus::PAUSED;
-        _data->paused = true;
+    _data->lock.lock();
 
-        std::unique_lock<decltype(_data->lock)> ulock(_data->lock);
+    if (_data->status == TaskStatus::PAUSE){
+        _data->lock.unlock();
+
         auto stateData = _data;
+        std::unique_lock ulock(_data->lock);
         _data->conVar.wait(ulock, [stateData]{
-            return (stateData->goOn or !stateData->alive);
+                return stateData->status != TaskStatus::PAUSE;
             });
 
-        _data->status = TaskStatus::ACTIVE;
-        _data->paused = false;
+        return;
     }
+
+    _data->lock.unlock();
 }
 
-bool TaskSlave::isAlive(){
-    return _data->alive;
-}
-
-void TaskSlave::applyKill(){
-    _data->status = TaskStatus::KILLED;
-    _data->killed = true;
+bool TaskSlave::isKilled(){
+    std::lock_guard glock(_data->lock);
+    return _data->status == TaskStatus::KILL;
 }
 
 bool TaskSlave::setProgress(int val){
@@ -50,49 +67,33 @@ bool TaskSlave::setProgress(int val){
 // Master
 //--------
 
-TaskMaster::TaskMaster() :
-    _slave(&_data) {
-
+TaskMaster::TaskMaster(){
 }
 
 TaskMaster::~TaskMaster(){
-
+    std::lock_guard glock(_data.lock);
+    _data.status = TaskStatus::KILL;
 }
 
-void TaskMaster::start(){
-    _data.status = TaskStatus::ACTIVE;
-    _data.alive = true;
+TaskSlave TaskMaster::getSlave(){
+    return TaskSlave(&_data);
 }
 
-void TaskMaster::finish(){
-    _data.status = TaskStatus::FINISHED;
-}
+void TaskMaster::setStatus(TaskStatus status){
+    _data.lock.lock();
+    auto wasPaused = _data.status == TaskStatus::PAUSE;
+    _data.status = status;
+    _data.lock.unlock();
 
-void TaskMaster::pause(bool flag){
-    if (!_data.status != TaskStatus::ACTIVE){
-        _data.status = flag ? TaskStatus::PAUSING : TaskStatus::ACTIVE;
+    if (wasPaused && status != TaskStatus::PAUSE){
+        _data.conVar.notify_all();
     }
-
-    {
-        std::lock_guard glock(_data.lock);
-        _data.goOn = !flag;
-    }
-    _data.conVar.notify_all();
-}
-
-void TaskMaster::kill(){
-    _data.status = TaskStatus::KILLING;
-    _data.alive = false;
-}
-
-void TaskMaster::error(){
-    _data.status = TaskStatus::ERROR;
-}
-
-int TaskMaster::getProgress(){
-    return _data.progress;
 }
 
 TaskStatus TaskMaster::getStatus(){
     return _data.status;
+}
+
+int TaskMaster::getProgress(){
+    return _data.progress;
 }
