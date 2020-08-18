@@ -4,13 +4,14 @@
 #include <atomic>
 #include <condition_variable>
 
-enum TaskStatus {
+enum class TaskStatus {
     ACTIVE,
     DONE,
     ERROR,
     INACTIVE,
     KILL,
     PAUSE,
+    WAITING,
 };
 
 const char* TaskStatus2Str(TaskStatus status);

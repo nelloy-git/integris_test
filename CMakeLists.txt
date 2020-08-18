@@ -9,7 +9,9 @@ option(TESTS_ENABLED "Use CxxTest" ON)
 
 include_directories(.)
 set(SOURCES
-    ./Tasks/TaskData.cpp)
+    ./ManagerCore.cpp 
+    ./Tasks/TaskData.cpp
+    ./Utils.cpp)
 
 if (${TESTS_ENABLED})
 

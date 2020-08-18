@@ -10,6 +10,7 @@ static const std::unordered_map<TaskStatus, const char*> Status2StrMap{
     {TaskStatus::INACTIVE, "INACTIVE"},
     {TaskStatus::KILL, "KILL"},
     {TaskStatus::PAUSE, "PAUSE"},
+    {TaskStatus::WAITING, "WAITING"},
 };
 
 const char* TaskStatus2Str(TaskStatus status){

@@ -1,43 +1,53 @@
 #ifndef TASK_H
 #define TASK_H
 
+#include <chrono>
+#include <cstring>
 #include <exception>
+#include <iostream>
 #include <functional>
 #include <future>
 
 #include "Tasks/TaskData.h"
 
-template<typename _resT, typename... _argsT>
-using TaskExecutor = std::function<_resT(TaskSlave &, _argsT...)>;
+class TaskInterface {
+public:
+    TaskInterface() = default;
+    virtual ~TaskInterface() = default;
+    virtual void pause(bool flag) = 0;
+    virtual void kill() = 0;
+    virtual double progress() = 0;
+    virtual TaskStatus status() = 0;
+    virtual void getResult(void *res) = 0;
+};
 
-template<typename TaskExecutor, typename... _argsT>
-class Task {
+template<typename _funT, typename... _argsT>
+class Task : public TaskInterface{
 
-typedef std::invoke_result_t<TaskExecutor, TaskSlave &, _argsT...> _resT;
+typedef typename std::invoke_result_t<_funT, TaskSlave &, _argsT...> _resT;
 
 public:
-    Task(TaskExecutor func, _argsT... args) : 
-        _func([this, func, args...]{
+    Task(uint msecDelay, _funT func, _argsT... args) : 
+        _future(std::async(std::launch::async, [this, msecDelay, func, args...]{
+            // Wait delay
+            this->_master.setStatus(TaskStatus::WAITING);
+            std::this_thread::sleep_for(std::chrono::milliseconds(msecDelay));
+            this->_master.setStatus(TaskStatus::ACTIVE);
+
+            // Start execution.
             std::shared_ptr slave = std::make_shared<TaskSlave>(this->_master);
             _resT res = func(*slave, args...);
             this->_master.setStatus(TaskStatus::DONE);
             return res;
-        }){
+        }))
+        {
     };
 
     virtual ~Task(){
         _master.setStatus(TaskStatus::KILL);
     };
 
-    void start(){
-        if (_master.getStatus() != TaskStatus::INACTIVE){
-            throw std::logic_error("Can not start Task. It is already running.");
-        }
-        this->_master.setStatus(TaskStatus::ACTIVE);
-        _future = std::async(std::launch::async, _func);
-    };
-
-    void pause(bool flag){
+    void pause(bool flag) override {
         if (flag){
             if (_master.getStatus() != TaskStatus::ACTIVE){
                 throw std::logic_error("Can not pause Task. It is already paused.");
@@ -52,7 +62,7 @@ public:
         }
     }
 
-    void kill(){
+    void kill() override {
         auto cur = _master.getStatus();
 
         if (!(cur == TaskStatus::ACTIVE || cur == TaskStatus::PAUSE)){
@@ -61,14 +71,21 @@ public:
         _master.setStatus(TaskStatus::KILL);
     }
 
-    TaskStatus getStatus(){
+    double progress() override {
+        return _master.getProgress();
+    }
+
+    TaskStatus status(){
         return _master.getStatus();
     }
 
-    _resT getResult(){
+    // Memory for result must be allocated
+    void getResult(void *res){
         auto status = _master.getStatus();
         if (status == TaskStatus::DONE){
-            return _future.get();
+            _resT fRes = _future.get();
+            std::memcpy(res, &fRes, sizeof(_resT));
+            return;
         }
 
         if (status == TaskStatus::KILL){

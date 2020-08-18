@@ -8,6 +8,18 @@ ManagerCore::~ManagerCore(){
 
 }
 
-uint ManagerCore::startTask(TaskInterface &task, uint delay = 0){
-    
+void ManagerCore::pause(uint id, bool flag){
+    id2task.at(id)->pause(flag);
+}
+
+void ManagerCore::kill(uint id){
+    id2task.at(id)->kill();
+}
+
+TaskStatus ManagerCore::status(uint id){
+    return id2task.at(id)->status();
+}
+
+void ManagerCore::result(uint id, void *res){
+    id2task.at(id)->getResult(res);
 }
