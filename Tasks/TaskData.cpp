@@ -21,12 +21,43 @@ const char* TaskStatus2Str(TaskStatus status){
     }
 }
 
+//--------
+// Master
+//--------
+
+TaskMaster::TaskMaster(){
+}
+
+TaskMaster::~TaskMaster(){
+    std::lock_guard glock(_data.lock);
+    _data.status = TaskStatus::KILL;
+}
+
+void TaskMaster::setStatus(TaskStatus status){
+    _data.lock.lock();
+    auto wasPaused = _data.status == TaskStatus::PAUSE;
+    _data.status = status;
+    _data.lock.unlock();
+
+    if (wasPaused && status != TaskStatus::PAUSE){
+        _data.conVar.notify_all();
+    }
+}
+
+TaskStatus TaskMaster::getStatus(){
+    return _data.status;
+}
+
+int TaskMaster::getProgress(){
+    return _data.progress;
+}
+
 //-------
 // Slave
 //-------
 
-TaskSlave::TaskSlave(TaskData *data){
-    _data = data;
+TaskSlave::TaskSlave(TaskMaster &master){
+    _data = &master._data;
 }
 
 TaskSlave::~TaskSlave(){
@@ -61,39 +92,4 @@ bool TaskSlave::setProgress(int val){
         return true;
     }
     return false;
-}
-
-//--------
-// Master
-//--------
-
-TaskMaster::TaskMaster(){
-}
-
-TaskMaster::~TaskMaster(){
-    std::lock_guard glock(_data.lock);
-    _data.status = TaskStatus::KILL;
-}
-
-TaskSlave TaskMaster::getSlave(){
-    return TaskSlave(&_data);
-}
-
-void TaskMaster::setStatus(TaskStatus status){
-    _data.lock.lock();
-    auto wasPaused = _data.status == TaskStatus::PAUSE;
-    _data.status = status;
-    _data.lock.unlock();
-
-    if (wasPaused && status != TaskStatus::PAUSE){
-        _data.conVar.notify_all();
-    }
-}
-
-TaskStatus TaskMaster::getStatus(){
-    return _data.status;
-}
-
-int TaskMaster::getProgress(){
-    return _data.progress;
 }

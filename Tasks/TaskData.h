@@ -23,6 +23,30 @@ struct TaskData{
     std::condition_variable conVar;
 };
 
+//--------
+// Master
+//--------
+class TaskSlave;
+
+class TaskMaster {
+
+public:
+    TaskMaster();
+    virtual ~TaskMaster();
+
+    //TaskSlave getSlave();
+    void setStatus(TaskStatus status);
+    TaskStatus getStatus();
+    int getProgress();
+
+protected:
+    TaskData _data;
+
+private:
+    friend TaskSlave;
+
+};
+
 //-------
 // Slave
 //-------
@@ -30,6 +54,9 @@ struct TaskData{
 class TaskSlave {
 
 public:
+    TaskSlave(TaskMaster &master);
+    virtual ~TaskSlave();
+
     // Pause thread if Task is paused.
     void tryPause();
     // Is task killed.
@@ -41,33 +68,7 @@ public:
     bool setProgress(int val);
 
 private:
-    TaskSlave(TaskData *data);
-    virtual ~TaskSlave();
-
     TaskData *_data;
-
-    friend class TaskMaster;
-};
-
-//--------
-// Master
-//--------
-
-class TaskMaster {
-
-public:
-    TaskMaster();
-    virtual ~TaskMaster();
-
-    TaskSlave getSlave();
-    void setStatus(TaskStatus status);
-    TaskStatus getStatus();
-    int getProgress();
-
-protected:
-    TaskData _data;
-
-private:
 
 };
 
