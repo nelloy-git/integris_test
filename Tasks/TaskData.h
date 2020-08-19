@@ -27,6 +27,7 @@ struct TaskData{
 //--------
 // Master
 //--------
+
 class TaskSlave;
 
 class TaskMaster {
@@ -35,7 +36,6 @@ public:
     TaskMaster();
     virtual ~TaskMaster();
 
-    //TaskSlave getSlave();
     void setStatus(TaskStatus status);
     TaskStatus getStatus();
     int getProgress();
@@ -58,18 +58,17 @@ public:
     TaskSlave(TaskMaster &master);
     virtual ~TaskSlave();
 
+    bool isPaused();
     // Pause thread if Task is paused.
     void tryPause();
     // Is task killed.
     bool isKilled();
-    // Accept thread kill.
-    void applyKill();
     // 0 <= val <= 100
     // Returns false if failed.
     bool setProgress(int val);
     int getProgress();
 
-private:
+protected:
     TaskData *_data;
 
 };

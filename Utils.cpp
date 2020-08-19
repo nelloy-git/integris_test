@@ -1,8 +1,8 @@
 #include "Utils.h"
 
-std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+std::deque<std::string> split(const std::string& str, const std::string& delimiter) {
     int lastPos = 0;
-    std::vector<std::string> pieces;
+    std::deque<std::string> pieces;
     while (true) {
         auto pos = str.find(delimiter, lastPos);
         if (pos != std::string::npos) {

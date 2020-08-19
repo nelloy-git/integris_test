@@ -16,7 +16,7 @@ public:
     virtual ~TaskInterface() = default;
     virtual void pause(bool flag) = 0;
     virtual void kill() = 0;
-    virtual double progress() = 0;
+    virtual int progress() = 0;
     virtual TaskStatus status() = 0;
     virtual void getResult(void *res) = 0;
 };
@@ -27,7 +27,8 @@ class Task : public TaskInterface{
 typedef typename std::invoke_result_t<_funT, TaskSlave &, _argsT...> _resT;
 
 public:
-    Task(uint msecDelay, _funT func, _argsT... args) : 
+    // _funT must return non void value.
+    Task(uint msecDelay, const _funT &func, _argsT... args) : 
         _future(std::async(std::launch::async, [this, msecDelay, func, args...]{
             // Wait delay
             this->_master.setStatus(TaskStatus::WAITING);
@@ -35,8 +36,15 @@ public:
             this->_master.setStatus(TaskStatus::ACTIVE);
 
             // Start execution.
-            std::shared_ptr slave = std::make_shared<TaskSlave>(this->_master);
-            _resT res = func(*slave, args...);
+            _resT res;
+            auto slave = TaskSlave(this->_master);
+            try{
+                res = func(slave, args...);
+            } catch(...) {
+                this->_master.setStatus(TaskStatus::ERROR);
+                throw std::current_exception();
+            }
+
             this->_master.setStatus(TaskStatus::DONE);
             return res;
         }))
@@ -71,7 +79,7 @@ public:
         _master.setStatus(TaskStatus::KILL);
     }
 
-    double progress() override {
+    int progress() override {
         return _master.getProgress();
     }
 
@@ -80,6 +88,7 @@ public:
     }
 
     // Memory for result must be allocated
+    // throw std::logic_error, runtime_error
     void getResult(void *res){
         auto status = _master.getStatus();
         if (status == TaskStatus::DONE){
@@ -90,6 +99,9 @@ public:
 
         if (status == TaskStatus::KILL){
             throw std::logic_error("Can not get result from killed task.");
+        }
+        else if (status == TaskStatus::ERROR){
+            _resT fRes = _future.get();
         }
         throw std::runtime_error("Task have not been finished.");
     }

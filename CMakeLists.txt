@@ -8,10 +8,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(TESTS_ENABLED "Use CxxTest" ON)
 
 include_directories(.)
+
 set(SOURCES
+    ./Commands.cpp
     ./ManagerCore.cpp 
     ./Tasks/TaskData.cpp
     ./Utils.cpp)
+
+set(TESTS
+    ./Tests/test_Task.h
+    ./Tests/test_TaskData.h
+    ./Tests/test_ManagerCore.h)
 
 if (${TESTS_ENABLED})
 
@@ -44,10 +51,6 @@ if (${TESTS_ENABLED})
     endmacro(ADD_CXXTEST)
 
     ENABLE_TESTING()
-    #add_subdirectory(./Tests)
-
-    set(TESTS
-        ./Tests/test_Task.h)
 
     foreach(test_file ${TESTS})
         ADD_CXXTEST(${test_file} ${SOURCES})

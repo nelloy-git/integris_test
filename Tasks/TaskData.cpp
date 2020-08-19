@@ -64,6 +64,10 @@ TaskSlave::TaskSlave(TaskMaster &master){
 TaskSlave::~TaskSlave(){
 }
 
+bool TaskSlave::isPaused(){
+    return _data->status == TaskStatus::PAUSE;
+}
+
 void TaskSlave::tryPause(){
     _data->lock.lock();
 
@@ -88,13 +92,13 @@ bool TaskSlave::isKilled(){
 }
 
 bool TaskSlave::setProgress(int val){
-    if (val >= 0 && val <= 100 && val > _data->progress){
-        _data->progress = val;
+    if (val > _data->progress){
+        _data->progress = val < 0 ? 0 : val > 100 ? 100 : val;
         return true;
     }
     return false;
+}
 
 int TaskSlave::getProgress(){
     return _data->progress;
-}
 }

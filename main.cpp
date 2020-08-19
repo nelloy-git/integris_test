@@ -1,70 +1,57 @@
+#include <deque>
 #include <functional>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
+#include "Commands.h"
 #include "ManagerCore.h"
 #include "Utils.h"
 
 using namespace std;
 
-function<int(TaskSlave&)> emptyInfFunc = [](TaskSlave& state){
-    while(!state.isKilled() or state.getProgress() < 100){
-        state.tryPause();
-        this_thread::sleep_for(chrono::seconds(1));
-        state.setProgress(state.getProgress() + 1);
-    }
-    return 0;
+void printHelp(ManagerCore& manager, deque<string> &args);
+
+static const map<string, CommandFunc> commands{
+    {"help", printHelp},
+    {"quit", closeProgramm},
+    {"pause", pauseTask},
+    {"continue", continueTask},
+    {"kill", killTask},
+    {"info", getTaskInfo},
+    {"print_int_result", printIntResult},
+    {"add_empty", runEmptyTask},
+    {"add_inf", runEmptyTask},
 };
 
-bool pauseTask(ManagerCore& manager, vector<string> &input){
-    if (input.size() != 2){
-        string exMsg = "Need 1 argument, got %d" + to_string(input.size());
-        throw std::runtime_error(exMsg);
+void printHelp(ManagerCore& manager, deque<string> &args){
+    cout << endl << "Available commands:" << endl;
+    for (auto it = commands.cbegin(); it != commands.cend(); it++){
+        cout << it->first << endl;
     }
-
-    uint id = stoi(input[1]);
-    try{
-        manager.pause(id, true);
-    }
-    catch(const out_of_range &e){
-        throw std::runtime_error("Wrong task id.");
-    }
-    return true;
+    cout << endl;
 }
 
-bool emptyInfCmd(ManagerCore& manager, vector<string> &input){
-    uint delay = 0;
-    auto id = manager.newTask(delay, emptyInfFunc);
-    cout << "Task EmptyInfinity created. ID: " << id << "\n";
-    return true;
-};
-
-static const unordered_map<string, function<bool(ManagerCore&, vector<string>&)>> Commands{
-    {"pause", pauseTask},
-    {"add_empty_inf", emptyInfCmd},
-};
-
 int main(int argc, char** argv){
-    ManagerCore manager;
+    uint maxTasks = 0; // Infinity
+    if (argc >= 2){
+        maxTasks = stoi(argv[1]);
+    }
+
+    ManagerCore manager(maxTasks);
     string strInput;
-    vector<string> input;
     
     while(true){
         getline(cin, strInput);
 
-        input = split(strInput, " ");
+        auto input = split(strInput, " ");
+        string cmd = input.at(0);
+        input.pop_front();
 
-        //cout << "Cmd: " << input[0];
-        //for (int i = 1; i < input.size(); i++){
-        //    cout << "|" << input[i];
-        //}
-        //cout << "\n";
-
-        function<bool(ManagerCore &, vector<string>&)> cmdFun;
+        CommandFunc cmdFun;
         try{
-            cmdFun = Commands.at(input[0]);
+            cmdFun = commands.at(cmd);
         }
         catch(const out_of_range &e){
             cout << "Unknown command\n";
@@ -72,10 +59,16 @@ int main(int argc, char** argv){
         }
 
         try{
-            auto success = cmdFun(manager, input);
+            cmdFun(manager, input);
         }
         catch(const runtime_error &e){
             cout << e.what() << "\n";
+        }
+        catch(const invalid_argument &e){
+            cout << "Invalid argument" << endl;
+        }
+        catch(const out_of_range &e){
+            cout << e.what() << endl;
         }
     }
 }

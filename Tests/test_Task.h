@@ -1,9 +1,6 @@
 #include <cxxtest/TestSuite.h>
 
 #include <chrono>
-#include <ctime> 
-#include <iostream>
-#include <unistd.h>
 
 #include "Tasks/Task.h"
 
@@ -38,14 +35,14 @@ public:
         Task task(0, [fRes](TaskSlave& state){
             while (!state.isKilled()){
                 state.tryPause();
-                usleep(1000);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));;
             }
 
             return fRes;    
         });
 
         while (task.status() != TaskStatus::ACTIVE){
-            usleep(1);
+            std::this_thread::sleep_for(std::chrono::microseconds(1));;
         }
 
         task.pause(true);
