@@ -67,6 +67,7 @@ public:
     // 0 <= val <= 100
     // Returns false if failed.
     bool setProgress(int val);
+    int getProgress();
 
 private:
     TaskData *_data;

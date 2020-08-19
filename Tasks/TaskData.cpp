@@ -93,4 +93,8 @@ bool TaskSlave::setProgress(int val){
         return true;
     }
     return false;
+
+int TaskSlave::getProgress(){
+    return _data->progress;
+}
 }

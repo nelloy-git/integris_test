@@ -21,15 +21,8 @@ public:
     uint newTask(uint msecDelay, _funT exec, _argsT... args){
         typedef decltype(Task(msecDelay, exec, args...)) _taskT;
 
-        auto pTask = new _taskT(msecDelay, exec, args...);
-        auto pInterface = static_cast<TaskInterface *>(pTask);
-        //auto pTask = std::make_shared<_taskT>(msecDelay, exec, args...);
-
-        //decltype(Task(msecDelay, exec, args...)) *task(msecDelay, exec, args...);
-        //auto pTask = std::shared_ptr<Task>(msecDelay, exec, args...);
-        //auto pInterface = 
-        //TaskInterface* interface = task;
-        //auto pTask = std::shared_ptr<TaskInterface>(task);
+        auto pTask = std::make_shared<_taskT>(msecDelay, exec, args...);
+        auto pInterface = std::static_pointer_cast<TaskInterface>(pTask);
 
         auto id = _getId();
         id2task.insert_or_assign(id, pInterface);
@@ -49,11 +42,11 @@ public:
     TaskStatus status(uint id);
 
     // Memory for result must be allocated.
-    // throw std::out_of_range, std::logic_error, std::runtime_error
+    // throw std::out_of_range, std::logic_error, std::runtime_error or any other exception thrown by thread.
     void result(uint id, void *res);
 
 protected:
-    std::unordered_map<uint, TaskInterface *> id2task;
+    std::unordered_map<uint, std::shared_ptr<TaskInterface>> id2task;
 
 private:
     uint _curId = 0;
